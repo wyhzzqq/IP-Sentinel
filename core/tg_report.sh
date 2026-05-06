@@ -221,22 +221,18 @@ else
 *若本项目对您有帮助，欢迎前往 GitHub 赐予 🌟*"
 fi
 
-# 5. 调用 API 推送 (接入安全网关，挂载控制台按钮与 GitHub 引流)
+# 5. 调用 API 推送 (接入安全网关，挂载交互式控制台按钮)
 JSON_PAYLOAD=$(jq -n \
   --arg cid "$CHAT_ID" \
   --arg txt "$MSG" \
   --arg cb "manage:${NODE_NAME}" \
-  --arg repo_url "https://github.com/hotyue/IP-Sentinel" \
   '{
     chat_id: $cid,
     text: $txt,
     parse_mode: "Markdown",
     disable_web_page_preview: true,
     reply_markup: {
-      inline_keyboard: [
-        [{"text": "⚙️ 调出该节点控制台", "callback_data": $cb}],
-        [{"text": "🌟 前往 GitHub 仓库点亮星标", "url": $repo_url}]
-      ]
+      inline_keyboard: [[{"text": "⚙️ 调出该节点控制台", "callback_data": $cb}]]
     }
   }')
 
