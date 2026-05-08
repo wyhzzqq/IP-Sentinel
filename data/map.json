@@ -74,6 +74,21 @@
             } 
           ] 
         },
+        { 
+          "id": "KH", 
+          "name": "Cambodia (柬埔寨)", 
+          "keyword_file": "kw_KH.txt", 
+          "states": [
+            { "id": "Default", 
+              "name": "Default State", 
+              "cities": [
+                { "id": "PhnomPenh", 
+                  "name": "Phnom Penh (金边)" 
+                } 
+              ] 
+            } 
+          ] 
+        },
         {
           "id": "KR",
           "name": "South Korea (韩国)",
