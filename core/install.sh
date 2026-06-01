@@ -219,9 +219,13 @@ done
 rm -f /etc/local.d/ip_sentinel.start 2>/dev/null
 
 if [ "$UPGRADE_MODE" == "true" ]; then
+    # [v4.2.0 终极保障] 平滑升级时强制销毁旧版 TLS 证书与旧版 IP 缓存，逼迫下层组件重铸健康环境
+    rm -f "${INSTALL_DIR}/core/cert.pem" "${INSTALL_DIR}/core/key.pem" "${INSTALL_DIR}/core/.last_ip" 2>/dev/null
+    echo -e "🧹 历史底层缓存及残旧 TLS 证书已强制销毁，准备重铸安全装甲。"
+
     if [ "$KEEP_LOGS" == "false" ]; then
         rm -rf "${INSTALL_DIR}/logs" 2>/dev/null
-        echo -e "🗑️ 历史日志已按指令清空。"
+        echo -e "🗑️ 历史战地日志已按指令清空。"
     else
         echo -e "📦 历史配置与战地日志已妥善保留。"
     fi

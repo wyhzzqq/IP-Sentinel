@@ -55,23 +55,28 @@ if [ -n "$AGENT_IP" ]; then
     fi
 fi
 
-# [v4.1.8 核心修复] 彻底解决 IPv6 致命耳聋漏洞 (Socket Binding Mismatch)
-# 在拉起 Python 引擎前，由 Bash 强行锁定底层网络栈监听维度，抛弃脆弱的内部解析
-if [[ "$AGENT_IP" == *":"* ]]; then
-    export BIND_ADDR="::"
-    echo "🌐 [Agent] 协议栈识别: 侦测到 IPv6 基因，底层路由强锁定至 [::]"
-else
-    export BIND_ADDR="0.0.0.0"
-    echo "🌐 [Agent] 协议栈识别: 侦测到 IPv4 基因，底层路由强锁定至 0.0.0.0"
-fi
-
 # ==========================================================
 # [加密通信] 强制构建自签名 TLS 装甲，屏蔽中间人嗅探
 # ==========================================================
 CERT_FILE="${INSTALL_DIR}/core/cert.pem"
 KEY_FILE="${INSTALL_DIR}/core/key.pem"
+
+# [v4.2.0 热修复] 检查证书是否过于陈旧或可能损坏，若是则强制销毁重铸
+if [ -f "$CERT_FILE" ]; then
+    # 提取证书创建时间，如果早于 2026-05-31（v4.2.0 架构升级前），则强制扬了它！
+    CERT_DATE=$(openssl x509 -noout -startdate -in "$CERT_FILE" 2>/dev/null | cut -d= -f2)
+    if [[ -n "$CERT_DATE" ]]; then
+        CERT_EPOCH=$(date -d "$CERT_DATE" +%s 2>/dev/null || echo 0)
+        V420_EPOCH=$(date -d "2026-05-31" +%s 2>/dev/null || echo 1780185600)
+        if [ "$CERT_EPOCH" -lt "$V420_EPOCH" ]; then
+            echo "🧹 [Agent] 侦测到旧版 (v4.2.0前) 遗留 TLS 装甲，正在执行强制物理销毁..."
+            rm -f "$CERT_FILE" "$KEY_FILE"
+        fi
+    fi
+fi
+
 if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
-    echo "🔐 [Agent] 正在生成本地自签名 TLS 加密证书 (2048位 RSA)..."
+    echo "🔐 [Agent] 正在生成全新的本地自签名 TLS 加密证书 (2048位 RSA)..."
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$KEY_FILE" -out "$CERT_FILE" \
         -subj "/C=US/O=IP-Sentinel/CN=Agent-Sec" >/dev/null 2>&1 || true
@@ -482,13 +487,23 @@ import socket
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
-# [v4.1.8 终极修复] 废除脆弱的 Python 内置解析，直接读取 Bash 注入的底层环境变量
-bind_addr = os.environ.get('BIND_ADDR', '0.0.0.0')
-if bind_addr == "::":
-    ThreadedServer.address_family = socket.AF_INET6
-else:
-    ThreadedServer.address_family = socket.AF_INET
+# [v4.2.0 战术重构] 双轨通讯分离架构探底
+# Python 引擎彻底脱离养护 IP 的干扰，绝对服从 COMM_IP (专线通讯) 的协议栈维度
+bind_addr = "0.0.0.0"
+address_family = socket.AF_INET
 
+config_path = '/opt/ip_sentinel/config.conf'
+if os.path.exists(config_path):
+    with open(config_path, 'r', errors='ignore') as f:
+        for line in f:
+            if line.startswith('COMM_IP='):
+                comm_ip = line.split('=', 1)[1].strip('"\'')
+                if ':' in comm_ip:
+                    bind_addr = "::"
+                    address_family = socket.AF_INET6
+                break
+
+ThreadedServer.address_family = address_family
 httpd = ThreadedServer((bind_addr, PORT), AgentHandler)
 
 # ----------------------------------------------------------
