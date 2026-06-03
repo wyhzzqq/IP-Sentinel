@@ -17,7 +17,7 @@ MODULES=(
 
 # 1. 串行拉取子模块资产
 for mod in "${MODULES[@]}"; do
-    curl -fsSL --connect-timeout 10 --retry 3 "${REPO_RAW_URL}/install/${mod}" -o "${SECURE_TMP}/${mod}"
+    curl -fsSL --connect-timeout 10 --retry 3 "${REPO_RAW_URL}/install/${mod}?t=$(date +%s)" -o "${SECURE_TMP}/${mod}"
     if [ ! -s "${SECURE_TMP}/${mod}" ]; then
         echo -e "\033[31m❌ 致命错误：依赖模块 [${mod}] 装载失败！\033[0m"
         exit 1
