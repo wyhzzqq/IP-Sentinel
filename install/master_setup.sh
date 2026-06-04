@@ -21,7 +21,7 @@ do_master_env_precheck() {
 }
 
 do_fetch_master_version() {
-    TARGET_VERSION=$( (curl -fsSL --connect-timeout 5 --retry 2 "${REPO_RAW_URL}/version.txt" || curl -4 -fsSL --connect-timeout 5 --retry 2 "${REPO_RAW_URL}/version.txt") 2>/dev/null | grep "^MASTER_VERSION=" | cut -d'=' -f2 | tr -d '[:space:]')
+    TARGET_VERSION=${TARGET_VERSION:-"4.3.1"}
     TARGET_VERSION=${TARGET_VERSION:-"4.0.7"}
 
     MASTER_DIR="/opt/ip_sentinel_master"

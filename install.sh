@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================================
-# 脚本名称: install.sh (v4.3.0 模块化终极引导入口)
-# 核心功能: 权限鉴定、沙盒创建、Ctrl+C 熔断保护、业务流引导
+# 脚本名称: install.sh (动态模块化终极引导入口)
+# 核心功能: 权限鉴定、沙盒创建、Ctrl+C 熔断保护、动态版本嗅探
 # ==========================================================
 
 if [ "$EUID" -ne 0 ]; then
@@ -23,9 +23,14 @@ trap 'rm -rf "$SECURE_TMP" 2>/dev/null' EXIT HUP
 
 REPO_RAW_URL="https://raw.githubusercontent.com/hotyue/IP-Sentinel/main"
 
-echo -e "\n⏳ 正在拉取 IP-Sentinel v4.3.0 安装模块引擎..."
+# ----------------------------------------------------------
+# [核心架构升级] 动态嗅探云端真理之源 (SSOT)
+# ----------------------------------------------------------
+TARGET_VERSION=$( (curl -fsSL --connect-timeout 5 --retry 2 "${REPO_RAW_URL}/version.txt?t=$(date +%s)" || curl -4 -fsSL --connect-timeout 5 --retry 2 "${REPO_RAW_URL}/version.txt?t=$(date +%s)") 2>/dev/null | grep "^AGENT_VERSION=" | cut -d'=' -f2 | tr -d '[:space:]')
+TARGET_VERSION=${TARGET_VERSION:-"4.3.1"}
 
-# 【核心防线】追加 ?t=$(date +%s) 强行击穿 GitHub CDN 缓存
+echo -e "\n⏳ 正在拉取 IP-Sentinel v${TARGET_VERSION} 安装模块引擎..."
+
 curl -fsSL --connect-timeout 10 --retry 3 "${REPO_RAW_URL}/install/build_agent.sh?t=$(date +%s)" -o "${SECURE_TMP}/build_agent.sh"
 
 if [ ! -s "${SECURE_TMP}/build_agent.sh" ]; then
@@ -35,6 +40,7 @@ fi
 
 export SECURE_TMP
 export REPO_RAW_URL
+export TARGET_VERSION
 
 chmod +x "${SECURE_TMP}/build_agent.sh"
 bash "${SECURE_TMP}/build_agent.sh"
